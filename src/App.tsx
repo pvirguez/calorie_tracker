@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { DailySummary } from './components/DailySummary';
 import { MacroProgress } from './components/MacroProgress';
 import { MealList } from './components/MealList';
@@ -9,6 +9,7 @@ import { DatePicker } from './components/DatePicker';
 import { useMeals } from './hooks/useMeals';
 import { useSettings } from './hooks/useSettings';
 import { useExercise } from './hooks/useExercise';
+import { useAuth } from './hooks/useAuth';
 import { analyzeMealImage } from './services/api';
 import { addMeal, deleteMeal, updateMeal } from './services/firestore';
 import { uploadMealImage } from './services/storage';
@@ -16,42 +17,53 @@ import { calculateDailySummary } from './utils/calculations';
 import { getTodayString } from './utils/dateUtils';
 
 function App() {
+  const { loading: authLoading } = useAuth();
   const [currentDate, setCurrentDate] = useState(getTodayString());
   const [showSettings, setShowSettings] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [userNotes, setUserNotes] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const { meals, loading: mealsLoading } = useMeals(currentDate);
   const { settings, loading: settingsLoading, update: updateSettings } = useSettings();
   const { exercise, loading: exerciseLoading, update: updateExercise } = useExercise(currentDate);
 
-  const handleImageSelected = async (imageBase64: string) => {
+  const handleAnalyze = async () => {
+    if (!selectedImage) return;
+
     setAnalyzing(true);
 
     try {
       // Call GPT-4 Vision via Cloud Function
-      const result = await analyzeMealImage(imageBase64, userNotes);
+      const result = await analyzeMealImage(selectedImage, userNotes);
 
       // Create meal record with temporary placeholder
-      const mealId = await addMeal({
+      const mealData: any = {
         date: currentDate,
         timestamp: Date.now(),
         imageUrl: '', // Will be updated after upload
-        userNotes: userNotes || undefined,
         calories: result.calories,
         protein: result.protein,
         carbs: result.carbs,
         fat: result.fat
-      });
+      };
+
+      // Only add userNotes if it's not empty
+      if (userNotes.trim()) {
+        mealData.userNotes = userNotes;
+      }
+
+      const mealId = await addMeal(mealData);
 
       // Upload image to Firebase Storage in parallel
-      const imageUrl = await uploadMealImage(imageBase64, mealId);
+      const imageUrl = await uploadMealImage(selectedImage, mealId);
 
       // Update meal with image URL
       await updateMeal(mealId, { imageUrl });
 
       // Reset form
       setUserNotes('');
+      setSelectedImage(null);
     } catch (error) {
       console.error('Failed to analyze meal:', error);
       alert('Failed to analyze meal. Please make sure Firebase is configured correctly.');
@@ -69,12 +81,12 @@ function App() {
   // Calculate daily summary
   const summary = calculateDailySummary(currentDate, meals, settings, exercise);
 
-  const isLoading = mealsLoading || settingsLoading || exerciseLoading;
+  const isLoading = authLoading || mealsLoading || settingsLoading || exerciseLoading;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Header */}
-      <header className="bg-primary text-white p-4 sticky top-0 z-10 shadow-md">
+      <header className="bg-black text-white p-4 sticky top-0 z-10 shadow-md">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold">Calorie Tracker</h1>
           <button
@@ -141,14 +153,30 @@ function App() {
             {/* Image Upload */}
             <div className="mt-6 mb-6">
               <h3 className="text-lg font-semibold mb-2">Add Meal</h3>
-              <textarea
-                value={userNotes}
-                onChange={(e) => setUserNotes(e.target.value)}
-                placeholder="Add notes about the meal (optional - e.g., 'extra cheese', 'large portion')"
-                className="w-full p-3 border border-gray-300 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                rows={2}
+              <ImageUpload
+                selectedImage={selectedImage}
+                onImageSelected={setSelectedImage}
+                isAnalyzing={analyzing}
               />
-              <ImageUpload onImageSelected={handleImageSelected} isAnalyzing={analyzing} />
+              {selectedImage && (
+                <>
+                  <textarea
+                    value={userNotes}
+                    onChange={(e) => setUserNotes(e.target.value)}
+                    placeholder="Add notes about the meal (optional - e.g., 'extra cheese', 'large portion')"
+                    className="w-full p-3 border border-gray-300 rounded-lg mt-3 mb-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                    rows={2}
+                    disabled={analyzing}
+                  />
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={analyzing}
+                    className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {analyzing ? 'Analyzing...' : 'Analyze Meal'}
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Meals List */}

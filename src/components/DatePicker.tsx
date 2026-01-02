@@ -25,7 +25,7 @@ export const DatePicker: React.FC<Props> = ({ currentDate, onDateChange }) => {
         onClick={handlePrevious}
         className="px-3 py-1 text-gray-600 hover:text-gray-900 transition"
       >
-        ← Previous
+        ←
       </button>
 
       <div className="flex flex-col items-center">
@@ -46,7 +46,7 @@ export const DatePicker: React.FC<Props> = ({ currentDate, onDateChange }) => {
         onClick={handleNext}
         className="px-3 py-1 text-gray-600 hover:text-gray-900 transition"
       >
-        Next →
+        →
       </button>
     </div>
   );

@@ -51,7 +51,7 @@ const MacroBar: React.FC<{
   target: number;
   progress: number;
   color: string;
-}> = ({ label, current, target, progress, color }) => {
+}> = ({ label, current, target, progress }) => {
   const progressColor = getMacroProgressColor(progress);
   const bgColorClass = progressColor === 'green' ? 'bg-green-500' : progressColor === 'yellow' ? 'bg-yellow-500' : 'bg-red-500';
   const textColorClass = progressColor === 'green' ? 'text-green-700' : progressColor === 'yellow' ? 'text-yellow-700' : 'text-red-700';

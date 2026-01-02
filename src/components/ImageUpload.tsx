@@ -1,13 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 
 interface Props {
-  onImageSelected: (base64: string) => void;
+  selectedImage: string | null;
+  onImageSelected: (base64: string | null) => void;
   isAnalyzing: boolean;
 }
 
-export const ImageUpload: React.FC<Props> = ({ onImageSelected, isAnalyzing }) => {
-  const [preview, setPreview] = useState<string | null>(null);
+export const ImageUpload: React.FC<Props> = ({ selectedImage, onImageSelected, isAnalyzing }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,7 +27,6 @@ export const ImageUpload: React.FC<Props> = ({ onImageSelected, isAnalyzing }) =
 
       reader.onloadend = () => {
         const base64 = reader.result as string;
-        setPreview(base64);
         onImageSelected(base64);
       };
 
@@ -43,7 +42,7 @@ export const ImageUpload: React.FC<Props> = ({ onImageSelected, isAnalyzing }) =
   };
 
   const handleClearImage = () => {
-    setPreview(null);
+    onImageSelected(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -60,9 +59,9 @@ export const ImageUpload: React.FC<Props> = ({ onImageSelected, isAnalyzing }) =
         className="hidden"
       />
 
-      {preview ? (
+      {selectedImage ? (
         <div className="relative">
-          <img src={preview} alt="Preview" className="w-full rounded-lg shadow-md" />
+          <img src={selectedImage} alt="Preview" className="w-full rounded-lg shadow-md" />
           {isAnalyzing && (
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
               <div className="text-center text-white">

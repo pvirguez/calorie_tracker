@@ -1,14 +1,18 @@
 import OpenAI from 'openai';
 import type { GPT4VisionResponse } from './types.js';
+import { defineSecret } from 'firebase-functions/params';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Define the OpenAI API key secret
+export const openaiApiKey = defineSecret('OPENAI_API_KEY');
 
 export async function analyzeMeal(
   imageBase64: string,
   userNotes?: string
 ): Promise<GPT4VisionResponse> {
+  // Initialize OpenAI client with the API key from Firebase secrets
+  const openai = new OpenAI({
+    apiKey: openaiApiKey.value()
+  });
   // CRITICAL: Excellent prompt engineering for accurate calorie estimation
   const systemPrompt = `You are a professional nutritionist and calorie estimation expert. Your task is to analyze food images and provide accurate calorie and macronutrient estimates.
 
@@ -46,7 +50,7 @@ CRITICAL: Always return valid JSON only. No additional text.`;
     : "Analyze this meal image and provide calorie and macro estimates.";
 
   const response = await openai.chat.completions.create({
-    model: "gpt-4-vision-preview",
+    model: "gpt-4o", // Updated to current model with vision support
     messages: [
       {
         role: "system",
@@ -72,9 +76,25 @@ CRITICAL: Always return valid JSON only. No additional text.`;
 
   const content = response.choices[0].message.content;
 
+  if (!content) {
+    console.error('Empty response from GPT-4');
+    throw new Error('Empty response from GPT-4');
+  }
+
+  // Log the raw GPT-4 response
+  console.log('GPT-4 Response:', content);
+
   try {
+    // Remove markdown code blocks if present (```json ... ```)
+    let jsonContent = content.trim();
+    if (jsonContent.startsWith('```')) {
+      const lines = jsonContent.split('\n');
+      // Remove first and last lines (``` markers)
+      jsonContent = lines.slice(1, -1).join('\n');
+    }
+
     // Parse JSON response
-    const result = JSON.parse(content || '{}');
+    const result = JSON.parse(jsonContent);
 
     return {
       calories: result.calories || 0,
@@ -85,8 +105,9 @@ CRITICAL: Always return valid JSON only. No additional text.`;
       reasoning: result.reasoning
     };
   } catch (error) {
-    // Fallback parsing if JSON fails
-    console.error('Failed to parse GPT-4 response:', content);
-    throw new Error('Invalid response format from GPT-4');
+    // Better error logging
+    console.error('Failed to parse GPT-4 response. Raw content:', content);
+    console.error('Parse error:', error);
+    throw new Error(`Invalid response format from GPT-4: ${content?.substring(0, 200)}`);
   }
 }

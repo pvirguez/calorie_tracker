@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Firebase
+.firebase/
+functions/.runtimeconfig.json
+functions/lib/
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

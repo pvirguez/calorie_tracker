@@ -3,17 +3,17 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Settings - single document
     match /settings/user {
-      allow read, write: if true; // Single user app
+      allow read, write: if request.auth != null;
     }
 
     // Meals collection
     match /meals/{mealId} {
-      allow read, write: if true; // Single user app
+      allow read, write: if request.auth != null;
     }
 
     // Daily exercise tracking
     match /exercise/{dateId} {
-      allow read, write: if true; // Single user app
+      allow read, write: if request.auth != null;
     }
   }
 }

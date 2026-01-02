@@ -11,7 +11,7 @@ import {
   updateDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Meal, Settings, DailyExercise } from '../types';
+import type { Meal, Settings } from '../types';
 
 // Meals operations
 export const addMeal = async (meal: Omit<Meal, 'id'>): Promise<string> => {
