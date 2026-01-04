@@ -54,7 +54,6 @@ export const ImageUpload: React.FC<Props> = ({ selectedImage, onImageSelected, i
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileChange}
         className="hidden"
       />
