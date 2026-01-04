@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'Calorie Tracker',
         short_name: 'CalTracker',
         description: 'AI-powered calorie and macro tracking',
-        theme_color: '#10b981',
+        theme_color: '#000000',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
